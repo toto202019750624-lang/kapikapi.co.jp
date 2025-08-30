@@ -1,0 +1,1299 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>新機種情報一覧</title>
+    <style>
+        :root {
+            --bg-color: #f0f2f5;
+            --container-bg: #ffffff;
+            --header-bg: #4a5568;
+            --header-text: #ffffff;
+            --border-color: #e2e8f0;
+            --button-bg: #4299e1;
+            --button-hover-bg: #3182ce;
+            --add-month-bg: #38a169;
+            --add-month-hover-bg: #2f855a;
+            --edit-button-bg: #f6ad55;
+            --edit-button-hover-bg: #ed8936;
+            --delete-button-bg: #f56565;
+            --delete-button-hover-bg: #e53e3e;
+            --text-color: #2d3748;
+            --modal-bg: rgba(0, 0, 0, 0.6);
+        }
+
+        body {
+            font-family: 'Hiragino Kaku Gothic ProN', 'ヒラギノ角ゴ ProN W3', Meiryo, メイリオ, Osaka, 'MS PGothic', arial, helvetica, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            margin: 0;
+            padding: 15px;
+            font-size: 12px;
+        }
+
+        .top-bar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            max-width: 1920px;
+            margin: 0 auto 20px auto;
+        }
+
+        .top-controls {
+            display: flex;
+            gap: 10px;
+        }
+
+        .control-btn {
+            border: none;
+            padding: 8px 15px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-weight: bold;
+            color: white;
+            transition: background-color 0.2s;
+        }
+
+        #editModeBtn { background-color: var(--edit-button-bg); }
+        #editModeBtn:hover { background-color: var(--edit-button-hover-bg); }
+        
+        #addMonthBtn { background-color: var(--add-month-bg); }
+        #addMonthBtn:hover { background-color: var(--add-month-hover-bg); }
+        
+        #resetDataBtn { background-color: var(--delete-button-bg); }
+        #resetDataBtn:hover { background-color: var(--delete-button-hover-bg); }
+
+        .main-container {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            max-width: 1920px;
+            margin: 0 auto;
+        }
+
+        .column-header {
+            background-color: var(--header-bg);
+            color: var(--header-text);
+            padding: 10px 15px;
+            font-size: 16px;
+            font-weight: bold;
+            border-radius: 8px 8px 0 0;
+        }
+        
+        .month-section-wrapper {
+            background-color: var(--container-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 15px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+        }
+
+        .month-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 2px solid var(--header-bg);
+            padding-bottom: 5px;
+            margin: 0 0 10px 0;
+        }
+        
+        .month-title {
+            font-size: 14px;
+            font-weight: bold;
+            margin: 0;
+            border: none;
+            padding: 0;
+        }
+
+        .delete-month-btn {
+            background: none;
+            border: none;
+            color: var(--delete-button-bg);
+            font-size: 24px;
+            font-weight: bold;
+            cursor: pointer;
+            line-height: 1;
+            padding: 0 5px;
+        }
+        .delete-month-btn:hover {
+            color: var(--delete-button-hover-bg);
+        }
+
+        .table-wrapper {
+            max-height: 400px;
+            overflow-y: auto;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            table-layout: fixed;
+        }
+
+        th, td {
+            border: 1px solid var(--border-color);
+            padding: 4px 8px;
+            text-align: left;
+            word-break: break-word;
+        }
+
+        thead th {
+            background-color: #edf2f7;
+            font-size: 11px;
+            position: sticky;
+            top: 0;
+            z-index: 1;
+        }
+        
+        .col-date { width: 10%; }
+        .col-name { width: 30%; }
+        .col-maker { width: 15%; }
+        .col-type { width: 10%; }
+        .col-sales { width: 10%; text-align: right; }
+        .col-remarks { width: 15%; }
+        .col-actions { width: 10%; }
+
+        .actions {
+            display: flex;
+            gap: 5px;
+            justify-content: center;
+        }
+
+        .action-btn {
+            color: white;
+            border: none;
+            border-radius: 4px;
+            padding: 3px 6px;
+            cursor: pointer;
+            font-size: 10px;
+            transition: background-color 0.2s;
+        }
+
+        .edit-btn { background-color: var(--edit-button-bg); }
+        .edit-btn:hover { background-color: var(--edit-button-hover-bg); }
+        .delete-btn { background-color: var(--delete-button-bg); }
+        .delete-btn:hover { background-color: var(--delete-button-hover-bg); }
+        
+        .add-btn {
+            display: block;
+            width: 100%;
+            margin-top: 8px;
+            padding: 6px;
+            background-color: #e6f0ff;
+            color: #1c3d5a;
+            border: 1px dashed #a3b8da;
+            border-radius: 4px;
+            cursor: pointer;
+            text-align: center;
+            font-weight: bold;
+            box-sizing: border-box;
+        }
+        .add-btn:hover { background-color: #d9e7ff; }
+
+        .text-right {
+            text-align: right;
+        }
+
+        /* Edit Mode Styles */
+        .edit-mode-item {
+            display: none !important;
+        }
+        body.edit-mode-active .edit-mode-item {
+            display: flex !important;
+        }
+        body.edit-mode-active .add-btn.edit-mode-item,
+        body.edit-mode-active .delete-month-btn.edit-mode-item {
+            display: block !important;
+        }
+        body.edit-mode-active .control-btn.edit-mode-item {
+            display: inline-block !important;
+        }
+
+
+        /* Modal Styles */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            overflow: auto;
+            background-color: var(--modal-bg);
+        }
+
+        .modal-content {
+            background-color: #fefefe;
+            margin: 10% auto;
+            padding: 20px;
+            border: 1px solid #888;
+            width: 80%;
+            max-width: 600px;
+            border-radius: 8px;
+        }
+
+        .modal-header {
+            padding-bottom: 10px;
+            border-bottom: 1px solid var(--border-color);
+            margin-bottom: 20px;
+        }
+        
+        .modal-title {
+            font-size: 18px;
+            font-weight: bold;
+        }
+
+        .form-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+        }
+        
+        .form-group {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .form-group label {
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+
+        .form-group input, .form-group textarea {
+            padding: 8px;
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            font-size: 12px;
+        }
+        
+        .form-group.full-width {
+            grid-column: 1 / -1;
+        }
+        
+        .form-actions {
+            grid-column: 1 / -1;
+            display: flex;
+            justify-content: flex-end;
+            gap: 10px;
+            margin-top: 20px;
+        }
+
+        .form-btn {
+            padding: 8px 16px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: bold;
+        }
+
+        #saveBtn {
+            background-color: var(--button-bg);
+            color: white;
+        }
+        #saveBtn:hover { background-color: var(--button-hover-bg); }
+
+        #cancelBtn, #confirmCancelBtn {
+            background-color: #ccc;
+        }
+        #cancelBtn:hover, #confirmCancelBtn:hover { background-color: #bbb; }
+        
+        #confirmOkBtn {
+            background-color: var(--delete-button-bg);
+            color: white;
+        }
+        #confirmOkBtn:hover {
+            background-color: var(--delete-button-hover-bg);
+        }
+
+        @media (max-width: 1024px) {
+            body { font-size: 11px; padding: 10px; }
+            .top-bar { flex-direction: column; align-items: flex-start; gap: 10px;}
+            .main-container { grid-template-columns: 1fr; }
+            .modal-content { margin: 15% auto; width: 90%; }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="top-bar">
+        <h1>新機種情報一覧</h1>
+        <div class="top-controls">
+            <button id="editModeBtn" class="control-btn">編集モード</button>
+            <button id="addMonthBtn" class="control-btn edit-mode-item">月を追加</button>
+            <button id="resetDataBtn" class="control-btn edit-mode-item">全てのデータを初期状態にリセット</button>
+        </div>
+    </div>
+
+    <div class="main-container" id="main-container">
+        <!-- Data will be rendered here by JavaScript -->
+    </div>
+
+    <!-- Modal for Add/Edit -->
+    <div id="formModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 id="modalTitle" class="modal-title">機種情報の編集</h2>
+            </div>
+            <form id="dataForm">
+                <input type="hidden" id="editType">
+                <input type="hidden" id="editMonth">
+                <input type="hidden" id="editIndex">
+                
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label for="date">導入日</label>
+                        <input type="date" id="date">
+                    </div>
+                    <div class="form-group">
+                        <label for="name">機種名</label>
+                        <input type="text" id="name" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="maker">メーカー</label>
+                        <input type="text" id="maker" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="type">タイプ</label>
+                        <input type="text" id="type" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="sales">販売台数</label>
+                        <input type="text" id="sales">
+                    </div>
+                     <div class="form-group" id="spec-group" style="display: none;">
+                        <label for="spec">メインスペック</label>
+                        <input type="text" id="spec">
+                    </div>
+                    <div class="form-group full-width">
+                        <label for="remarks">備考</label>
+                        <textarea id="remarks" rows="2"></textarea>
+                    </div>
+                    <div class="form-actions">
+                        <button type="button" id="cancelBtn" class="form-btn">キャンセル</button>
+                        <button type="submit" id="saveBtn" class="form-btn">保存</button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal for Confirmation -->
+    <div id="confirmModal" class="modal">
+        <div class="modal-content" style="max-width: 400px;">
+            <div class="modal-header">
+                <h2 id="confirmTitle" class="modal-title">確認</h2>
+            </div>
+            <p id="confirmMessage" style="margin: 20px 0; white-space: pre-wrap;"></p>
+            <div class="form-actions">
+                <button type="button" id="confirmCancelBtn" class="form-btn">キャンセル</button>
+                <button type="button" id="confirmOkBtn" class="form-btn">OK</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+    // CSVからパースした初期データ
+    const initialData = {
+        "2024-03": {
+            pachinko: [
+                { date: "3月17日", name: "PA sin七つの大罪 強甘 2400Ver(甘デジ)", maker: "高尾", type: "甘デジ", sales: "2,000台", remarks: "" },
+                { date: "3月17日", name: "Pファンキードクター", maker: "マルホン", type: "甘デジ", sales: "2,000台", remarks: "" },
+                { date: "3月31日", name: "Pコマコマ倶楽部with坂本冬美(再販)", maker: "豊丸", type: "甘デジ", sales: "500台", remarks: "" }
+            ],
+            pachislot: [
+                { date: "3月17日", name: "L忍魂3", maker: "大都技研", type: "AT", sales: "10,000台", remarks: "" },
+                { date: "3月17日", name: "S忍者じゃじゃ丸くん", maker: "エレコ", type: "AT", sales: "4,000台", remarks: "" },
+                { date: "3月17日", name: "Lドラゴンハナハナ", maker: "ピーセカンド", type: "ノーマル", sales: "2,000台", remarks: "L,S合わせて2,000台" },
+                { date: "3月17日", name: "Sドラゴンハナハナ(25φ）", maker: "パイオニア", type: "ノーマル", sales: "2,000台", remarks: "" },
+                { date: "3月17日", name: "LGI優駿倶楽部～黄金(再販)", maker: "コナミアミューズメント", type: "AT", sales: "-", remarks: "" }
+            ]
+        },
+        "2024-04": {
+            pachinko: [
+                { date: "4月7日", name: "Pひぐらしのなく頃に～輪廻転生", maker: "ディライト", type: "ミドル", sales: "12,000台", remarks: "" },
+                { date: "4月7日", name: "P大工の源さん韋駄天LT", maker: "三洋", type: "甘デジ", sales: "10,000台", remarks: "ラッキートリガー" },
+                { date: "4月7日", name: "PバイオハザードRE2", maker: "平和", type: "ライト", sales: "5,000台", remarks: "ラッキートリガー" },
+                { date: "4月7日", name: "P化物語2", maker: "銀座", type: "ミドル", sales: "4,000台", remarks: "" },
+                { date: "4月7日", name: "P化物語2", maker: "銀座", type: "ライト", sales: "4,000台", remarks: "" },
+                { date: "4月7日", name: "PぱちんこGANTZ覚醒Sweet2000", maker: "オッケー．", type: "甘デジ", sales: "1,500台", remarks: "" },
+                { date: "4月7日", name: "P北斗の拳暴凶星(再販)", maker: "サミー", type: "ミドル", sales: "500台", remarks: "" },
+                { date: "4月7日", name: "P大海物語5(再販)", maker: "三洋", type: "ミドル", sales: "若干数", remarks: "" },
+                { date: "4月7日", name: "P大海物語5ブラック(再販)", maker: "三洋", type: "ライト", sales: "若干数", remarks: "" },
+                { date: "4月7日", name: "PA大海物語5Withアグネス・ラム(再販)", maker: "三洋", type: "甘デジ", sales: "若干数", remarks: "" },
+                { date: "4月7日", name: "PAスーパー海物語IN沖縄5夜桜超旋風(再販)", maker: "三洋", type: "甘デジ", sales: "若干数", remarks: "" },
+                { date: "4月7日", name: "Pポチッと一発おだてブタ2(再販)", maker: "アムテックス", type: "羽根物", sales: "1,500台", remarks: "" },
+                { date: "4月21日", name: "P牙狼11～冴島大河", maker: "サンセイR&D", type: "ミドル", sales: "20,000台", remarks: "" },
+                { date: "4月21日", name: "Pマクロスフロンティア5", maker: "SANKYO", type: "ミドル", sales: "17,000台", remarks: "" },
+                { date: "4月21日", name: "eRe:ゼロSeason2(再販)", maker: "大都技研", type: "ミドル", sales: "12,000台", remarks: "" },
+                { date: "4月21日", name: "PFAIRY TAILこれが七炎竜の力だ", maker: "藤商事", type: "ミドル", sales: "8,000台", remarks: "ラッキートリガー" },
+                { date: "4月21日", name: "eマクロスフロンティア5", maker: "JB", type: "ミドル", sales: "3,000台", remarks: "" },
+                { date: "4月21日", name: "e必殺仕置人S", maker: "京楽", type: "ライト", sales: "3,000台", remarks: "ラッキートリガー" },
+                { date: "4月21日", name: "Pハイスクール・フリート2(甘デジ)", maker: "メーシー", type: "甘デジ", sales: "3,000台", remarks: "ラッキートリガー" },
+                { date: "4月21日", name: "Pこの素晴らしい世界に祝福を(再販)", maker: "豊丸", type: "ライト", sales: "500台", remarks: "ラッキートリガー" },
+                { date: "4月21日", name: "P真・一騎当千～桃園の誓い～（再販）", maker: "ディライト", type: "甘デジ", sales: "-", remarks: "" },
+                { date: "4月21日", name: "P弾球黙示録カイジ沼5V3B(甘デジ)", maker: "高尾", type: "甘デジ", sales: "-", remarks: "" }
+            ],
+            pachislot: [
+                { date: "4月7日", name: "Lゴールデンカムイ", maker: "銀座", type: "AT", sales: "15,000台", remarks: "" },
+                { date: "4月7日", name: "Sジャグラーガールズ", maker: "北電子", type: "ノーマル", sales: "13,000台", remarks: "" },
+                { date: "4月7日", name: "Lうる星やつら", maker: "ニューギン", type: "AT", sales: "5,000台", remarks: "" },
+                { date: "4月7日", name: "Lストライク・ザ・ブラット", maker: "エンターライズ", type: "A+AT", sales: "4,000台", remarks: "" },
+                { date: "4月7日", name: "Lモンキーターン5(再販)", maker: "山佐", type: "AT", sales: "4,000台", remarks: "青島パネル" },
+                { date: "4月7日", name: "SエウレカセブンHIEVO(再販)", maker: "タイヨーエレック", type: "AT", sales: "500台", remarks: "" },
+                { date: "4月14日", name: "S金のかぼちゃ", maker: "バルテック", type: "AT", sales: "1,000台", remarks: "" },
+                { date: "4月21日", name: "L押忍!番長4", maker: "大都技研", type: "AT", sales: "20,000台", remarks: "" },
+                { date: "4月21日", name: "Sダンまち2", maker: "ゼクロス", type: "A+ART", sales: "6,000台", remarks: "" },
+                { date: "4月21日", name: "L革命機ヴァルヴレイヴ(再販)", maker: "SANKYO", type: "AT", sales: "3,000台", remarks: "" },
+                { date: "4月21日", name: "Lゴジラ対エヴァンゲリオン(再販)", maker: "JB", type: "AT", sales: "3,000台", remarks: "" },
+                { date: "4月21日", name: "LGI優駿倶楽部（再販）", maker: "コナミアミーズメント", type: "AT", sales: "-", remarks: "" }
+            ]
+        },
+        "2024-05": {
+            pachinko: [
+                { date: "5月6日", name: "PAフィーバー炎炎ノ消防隊", maker: "SANKYO", type: "ライト", sales: "8,000台", remarks: "" },
+                { date: "5月6日", name: "Pラブ嬢3〜極嬢のハーレム体験〜", maker: "アムテックス", type: "ミドル", sales: "5,000台", remarks: "" },
+                { date: "5月6日", name: "P七つの大罪2～神千切りVer", maker: "銀座", type: "ライト", sales: "3,000台", remarks: "" },
+                { date: "5月6日", name: "Pゴブリンスレイヤー ラッキートリガーVer", maker: "JFJ", type: "甘デジ", sales: "3,000台", remarks: "ラッキートリガー" },
+                { date: "5月6日", name: "PGO!GO!郷5～革命の5(甘デジ)", maker: "ニューギン", type: "ライト", sales: "4,000台", remarks: "ラッキートリガー" },
+                { date: "5月6日", name: "P北斗の拳強敵LT(再販)", maker: "サミー", type: "甘デジ", sales: "2,000台", remarks: "ラッキートリガー" },
+                { date: "5月6日", name: "P水戸黄門～らいとばーじょん（甘デジ）", maker: "京楽", type: "甘デジ", sales: "1,000台", remarks: "" }
+            ],
+            pachislot: [
+                { date: "5月6日", name: "L交響詩篇エウレカセブン", maker: "銀座", type: "AT", sales: "10,000台", remarks: "" },
+                { date: "5月6日", name: "SニューパルサーWith太鼓の達人", maker: "セブンリーグ", type: "ノーマル", sales: "6,000台", remarks: "" },
+                { date: "5月6日", name: "L炎炎ノ消防隊", maker: "JB", type: "AT", sales: "5,000台", remarks: "" },
+                { date: "5月6日", name: "Lチバリヨ2（再販）", maker: "オーゼキ", type: "AT", sales: "5,000台", remarks: "内5月 2,000台" },
+                { date: "5月6日", name: "Lウルトラマンティガ", maker: "京楽", type: "AT", sales: "4,000台", remarks: "" },
+                { date: "5月6日", name: "S沖シーサー30", maker: "ヤーマ", type: "ノーマル", sales: "-", remarks: "" }
+            ]
+        },
+        "2024-06": {
+            pachinko: [
+                { date: "6月2日", name: "P魔王学院の不適合者", maker: "藤商事", type: "ミドル", sales: "15,000台", remarks: "ラッキートリガー" },
+                { date: "6月2日", name: "Pぱちんこ魔法少女まどか☆マギカ", maker: "オッケー.", type: "ライト", sales: "10,000台", remarks: "ラッキートリガー" },
+                { date: "6月2日", name: "PToLoveるダークネス", maker: "平和", type: "ミドル", sales: "10,000台", remarks: "" },
+                { date: "6月2日", name: "P頭文字D2nd", maker: "銀座", type: "ミドル", sales: "10,000台", remarks: "ラッキートリガー" },
+                { date: "6月2日", name: "P三国戦騎7500", maker: "SANKYO", type: "ミドル", sales: "8,000台", remarks: "" },
+                { date: "6月2日", name: "Pうる星やつら", maker: "ニューギン", type: "ライト", sales: "6,000台", remarks: "ラッキートリガー" },
+                { date: "6月2日", name: "Pクィーンズブレイド4", maker: "高尾", type: "ミドル", sales: "6,000台", remarks: "" },
+                { date: "6月2日", name: "Pギルティクラウン2 PLT Ver.（甘デジ）", maker: "メーシー", type: "甘デジ", sales: "3,200台", remarks: "" },
+                { date: "6月2日", name: "P保4のガチャバスター", maker: "A-gon", type: "役物", sales: "3,000台", remarks: "" },
+                { date: "6月2日", name: "P天才バカボン7～福神スペック～（再販）", maker: "大一", type: "甘デジ", sales: "-", remarks: "" },
+                { date: "6月16日", name: "P緋弾のアリア　～緋緋神降臨～（再販）", maker: "藤商事", type: "ミドル", sales: "3,000台", remarks: "" },
+                { date: "6月16日", name: "Pファンキードクター天使Ver.", maker: "マルホン", type: "役物", sales: "1,000台", remarks: "" }
+            ],
+            pachislot: [
+                { date: "6月2日", name: "LToLoveるダークネス", maker: "オリンピアエステート", type: "AT", sales: "12,000台", remarks: "" },
+                { date: "6月2日", name: "L星闘士星矢", maker: "サンスリー", type: "AT", sales: "10,000台", remarks: "" },
+                { date: "6月2日", name: "L痛いのは嫌なので防御力に極振りしたいと思います", maker: "ロデオ", type: "AT", sales: "8,000台", remarks: "" },
+                { date: "6月2日", name: "Lストリートファイター", maker: "エンターライズ", type: "AT", sales: "6,000台", remarks: "" },
+                { date: "6月2日", name: "Lからくりサーカス（再販）", maker: "SANKYO", type: "AT", sales: "6,000台", remarks: "" },
+                { date: "6月2日", name: "Sアオハル♪操A-LIVE", maker: "大都技研", type: "AT", sales: "4,000台", remarks: "" },
+                { date: "6月2日", name: "Lモンキーターン5(再販)", maker: "山佐", type: "AT", sales: "2,000台", remarks: "" },
+                { date: "6月2日", name: "S琉金-30", maker: "ニューギン", type: "AT", sales: "-", remarks: "テスト導入" },
+                { date: "6月16日", name: "L押忍!番長4（再販）", maker: "大都技研", type: "AT", sales: "6,000台", remarks: "" },
+                { date: "6月30日", name: "S沖ドキBLACK", maker: "ミズホ", type: "AT", sales: "15,000台", remarks: "" }
+            ]
+        },
+        "2024-07": {
+            pachinko: [
+                { date: "7月7日", name: "e花の慶次", maker: "ニューギン", type: "ミドル", sales: "25,000台", remarks: "ラッキートリガー" },
+                { date: "7月7日", name: "P アズールレーン THE ANIMATION 異次元トリガー", maker: "オッケー．", type: "ライトミドル", sales: "8,000台", remarks: "ラッキートリガー" },
+                { date: "7月7日", name: "P貞子", maker: "藤商事", type: "特殊", sales: "3,000台", remarks: "ラッキートリガー" },
+                { date: "7月7日", name: "Pありふれた職業て世界最強（甘デジ）", maker: "SANKYO", type: "甘デジ", sales: "2,000台", remarks: "" },
+                { date: "7月7日", name: "PドリームクルーンULTIMATE", maker: "オーイズミ", type: "役物", sales: "1,500台", remarks: "" },
+                { date: "7月21日", name: "PAこの素晴らしい世界に祝福を（甘デジ）", maker: "豊丸", type: "甘デジ", sales: "500台", remarks: "ラッキートリガー" },
+                { date: "7月28日", name: "PバイオハザードRE2LT（再販）", maker: "アムテックス", type: "ライトミドル", sales: "-", remarks: "ラッキートリガー" }
+            ],
+            pachislot: [
+                { date: "7月7日", name: "L真北斗無双", maker: "ロデオ", type: "AT", sales: "15,000台", remarks: "" },
+                { date: "7月7日", name: "L戦姫絶唱シンフォギア正義の歌", maker: "JB", type: "AT", sales: "12,000台", remarks: "" },
+                { date: "7月7日", name: "Lアカメが斬る！2", maker: "新日テクノロジー", type: "A+AT", sales: "6,000台", remarks: "" },
+                { date: "7月7日", name: "Sパチスロゴーヤ", maker: "京楽", type: "AT", sales: "受注生産", remarks: "" },
+                { date: "7月7日", name: "Sバハマ-30", maker: "アムテックス", type: "AT", sales: "1,000台", remarks: "" },
+                { date: "7月21日", name: "Sミスタージャグラー", maker: "北電子", type: "ノーマル", sales: "10,000台", remarks: "" },
+                { date: "7月21日", name: "Lゴッドイーターリザレクション", maker: "セブンリーグ", type: "AT", sales: "7,000台", remarks: "" },
+                { date: "7月21日", name: "Lゾンビランドサガ", maker: "大都技研", type: "AT", sales: "5,000台", remarks: "" },
+                { date: "7月21日", name: "L賞金首Angel", maker: "ネット", type: "AT", sales: "3,000台", remarks: "" },
+                { date: "7月21日", name: "L炎炎ノ消防隊(再販)", maker: "SANKYO", type: "AT", sales: "2,000台", remarks: "" }
+            ]
+        },
+        "2024-08": {
+            pachinko: [
+                { date: "8月4日", name: "Pガンダムユニコーン2", maker: "SANKYO", type: "ミドル", sales: "35,000台", remarks: "" },
+                { date: "8月4日", name: "e北斗の拳10", maker: "銀座", type: "ミドル", sales: "25,000台", remarks: "ラッキートリガー" },
+                { date: "8月4日", name: "eガンダムユニコーン2", maker: "SANKYO", type: "ミドル", sales: "15,000台", remarks: "ラッキートリガー" },
+                { date: "8月4日", name: "PAスーパー海物語IN地中海2（甘デジ）", maker: "三洋", type: "甘デジ", sales: "15,000台", remarks: "ラッキートリガー" },
+                { date: "8月4日", name: "P百花繚乱(甘デジ)", maker: "ディ・ライト", type: "甘デジ", sales: "2,000台", remarks: "" },
+                { date: "8月18日", name: "Pバンドリ", maker: "平和", type: "ミドル", sales: "8,000台", remarks: "" },
+                { date: "8月18日", name: "Pリング 呪いの7日間3 LT搭載", maker: "JFJ", type: "ライトミドル", sales: "5,000台", remarks: "ラッキートリガー" },
+                { date: "8月18日", name: "Pドラムだ！金ドン", maker: "ユニバーサル", type: "ライトミドル", sales: "4,000台", remarks: "ラッキートリガー" },
+                { date: "8月18日", name: "Pデジハネエウレカセブンハイエボ2（甘デジ）", maker: "サミー", type: "甘デジ", sales: "3,000台", remarks: "ラッキートリガー" },
+                { date: "8月18日", name: "P七つの美徳(甘デジ)", maker: "高尾", type: "甘デジ", sales: "1,000台", remarks: "" }
+            ],
+            pachislot: [
+                { date: "8月4日", name: "Lゲゲゲの鬼太郎-覚醒-", maker: "JFJ", type: "AT", sales: "10,000台", remarks: "" },
+                { date: "8月4日", name: "Lワンパンマン", maker: "ニューギン", type: "AT", sales: "8,000台", remarks: "" },
+                { date: "8月4日", name: "LD4DJ", maker: "オッケー．", type: "AT", sales: "7,000台", remarks: "" },
+                { date: "8月4日", name: "Lトロピカーナ", maker: "ミズホ", type: "AT", sales: "2,000台", remarks: "" },
+                { date: "8月4日", name: "Lからくりサーカス(再販)", maker: "SANKYO", type: "AT", sales: "2,000台", remarks: "" },
+                { date: "8月4日", name: "Lゴジエヴァ G覚醒パネルVer.(追加)", maker: "JB", type: "AT", sales: "1,000台", remarks: "" },
+                { date: "8月4日", name: "LToLoveるダークネス(再販)", maker: "オリンピアエステート", type: "AT", sales: "1,000台", remarks: "" },
+                { date: "8月4日", name: "Lモンキーターン（再販）", maker: "山佐", type: "AT", sales: "-", remarks: "" },
+                { date: "8月18日", name: "Lゲゲゲの鬼太郎-覚醒-", maker: "JFJ", type: "AT", sales: "10,000台", remarks: "" }
+            ]
+        },
+        "2024-09": {
+            pachinko: [
+                { date: "9月1日", name: "Pとある科学の超電磁砲２", maker: "JFJ", type: "ミドル", sales: "20,000台", remarks: "" },
+                { date: "9月1日", name: "e GOD EATER〜トリプルBURST", maker: "サンセイR&D", type: "マックス", sales: "10,000台", remarks: "ラッキートリガー" },
+                { date: "9月1日", name: "e仮面ライダー電王", maker: "京楽", type: "ミドル", sales: "10,000台", remarks: "ラッキートリガー" },
+                { date: "9月1日", name: "Pルパン三世13（甘デジ）", maker: "平和", type: "甘デジ", sales: "5,000台", remarks: "ラッキートリガー" },
+                { date: "9月1日", name: "eキョンシー", maker: "ニューギン", type: "ライトミドル", sales: "4,000台", remarks: "" },
+                { date: "9月1日", name: "Pワンパンマン（甘デジ）", maker: "ニューギン", type: "甘デジ", sales: "4,000台", remarks: "" },
+                { date: "9月1日", name: "PDD北斗の拳", maker: "高尾", type: "ミドル", sales: "3,000台", remarks: "" },
+                { date: "9月1日", name: "PAコマコマ倶楽部with坂本冬美LOOP1", maker: "豊丸", type: "甘デジ", sales: "1,000台", remarks: "" },
+                { date: "9月1日", name: "PAフィーバーかぐや様は告らせたい（甘デジ）", maker: "SANKYO", type: "甘デジ", sales: "-", remarks: "" },
+                { date: "9月1日", name: "P魔法少女まどか☆マギカ(再販)", maker: "オッケー．", type: "ライトミドル", sales: "1,000台", remarks: "" },
+                { date: "9月15日", name: "Pいくさの子", maker: "銀座", type: "ミドル", sales: "17,000台", remarks: "" },
+                { date: "9月15日", name: "P攻殻機動隊SAC2045", maker: "大一商会", type: "ライトミドル", sales: "8,000台", remarks: "ラッキートリガー" },
+                { date: "9月15日", name: "Pメイドインアビス", maker: "メーシー", type: "ミドル", sales: "4,500台", remarks: "" },
+                { date: "9月15日", name: "P貞子(再販)", maker: "藤商事", type: "-", sales: "2,000台", remarks: "" },
+                { date: "9月15日", name: "Pアズールレーン（再販）", maker: "京楽", type: "ライトミドル", sales: "2,000台", remarks: "" }
+            ],
+            pachislot: [
+                { date: "9月1日", name: "Lかぐや様は告らせたい", maker: "ジェイビー", type: "AT", sales: "15,000台", remarks: "" },
+                { date: "9月1日", name: "L黄門ちゃま天", maker: "オリンピア", type: "AT", sales: "8,000台", remarks: "" },
+                { date: "9月1日", name: "L A-SLOT+このすば FX", maker: "ロデオ", type: "A+AT", sales: "5,000台", remarks: "" },
+                { date: "9月1日", name: "L閃乱カグラ", maker: "オーイズミラボ", type: "A+AT", sales: "4,000台", remarks: "" },
+                { date: "9月1日", name: "L聖闘士星矢(再販)", maker: "三洋", type: "AT", sales: "1,000台", remarks: "" },
+                { date: "9月15日", name: "Sハイパーラッシュ", maker: "セブンリーグ", type: "AT", sales: "4,000台", remarks: "" }
+            ]
+        },
+        "2024-10": {
+            pachinko: [
+                { date: "10月6日", name: "Pわんわんパラダイスセレブレーション（甘デジ）", maker: "サンスリー", type: "甘デジ", sales: "15,000台", remarks: "" },
+                { date: "10月6日", name: "P宇宙戦艦ヤマト2202超波動", maker: "ビスティ", type: "ミドル", sales: "15,000台", remarks: "" },
+                { date: "10月6日", name: "Pルパン三世14", maker: "アムテックス", type: "ミドル", sales: "8,000台", remarks: "" },
+                { date: "10月6日", name: "e乃木坂46Ⅱ", maker: "京楽", type: "ライト", sales: "8,000台", remarks: "" },
+                { date: "10月6日", name: "P中森明菜（甘デジ）", maker: "ディ・ライト", type: "甘デジ", sales: "4,000台", remarks: "" },
+                { date: "10月6日", name: "P革命機ヴァルヴレイヴ3(甘デジ)", maker: "SANKYO", type: "甘デジ", sales: "3,000台", remarks: "" },
+                { date: "10月6日", name: "PCYBORG009S（ライト）", maker: "ニューギン", type: "ライト", sales: "-", remarks: "ラッキートリガー" },
+                { date: "10月20日", name: "P弾球黙示録カイジ沼5 V2A（甘デジ）", maker: "高尾", type: "甘デジ", sales: "2,000台", remarks: "" },
+                { date: "10月20日", name: "P江頭2:50 新台Ver.（甘デジ）", maker: "豊丸", type: "甘デジ", sales: "1,000台", remarks: "ラッキートリガー" }
+            ],
+            pachislot: [
+                { date: "10月6日", name: "L新・鬼武者", maker: "アデリオン", type: "AT", sales: "12,000台", remarks: "" },
+                { date: "10月6日", name: "L頭文字D２nd", maker: "ロデオ", type: "AT", sales: "10,000台", remarks: "" },
+                { date: "10月6日", name: "L一騎当千", maker: "大一商会", type: "AT", sales: "7,000台", remarks: "" },
+                { date: "10月6日", name: "L今日から俺は", maker: "ファイトクラブ", type: "AT", sales: "5,000台", remarks: "" },
+                { date: "10月6日", name: "LToLoveるダークネス（再販）", maker: "オリンピアエステート", type: "AT", sales: "-", remarks: "" },
+                { date: "10月6日", name: "SトリプルクラウンX2-30", maker: "清瀧ゲームジャパン", type: "ノーマル", sales: "-", remarks: "" },
+                { date: "10月20日", name: "LRe:ゼロから始める異世界生活2", maker: "パオン・ディーピー", type: "AT", sales: "25,000台", remarks: "" },
+                { date: "10月20日", name: "Sゴーゴージャグラー3（再販）", maker: "北電子", type: "ノーマル", sales: "4,000台", remarks: "" }
+            ]
+        },
+        "2024-11": {
+            pachinko: [
+                { date: "11月3日", name: "P大海物語5スペシャル", maker: "三洋", type: "ミドル", sales: "30,000台", remarks: "e機もあり" },
+                { date: "11月3日", name: "eからくりサーカス2", maker: "JB", type: "マックス", sales: "15,000台", remarks: "P機もあり" },
+                { date: "11月3日", name: "e転生したらスライムだった件", maker: "サンセイR&D", type: "ミドル", sales: "10,000台", remarks: "" },
+                { date: "11月3日", name: "eグリッドマンXVSM", maker: "七匠", type: "ミドル", sales: "6,000台", remarks: "" },
+                { date: "11月3日", name: "Pモンスターハンターライズ", maker: "銀座", type: "ライトミドル", sales: "5,000台", remarks: "" },
+                { date: "11月3日", name: "P義風堂々3-兼続と慶次- LT", maker: "ニューギン", type: "ライトミドル", sales: "5,000台", remarks: "" },
+                { date: "11月3日", name: "Pラブ嬢(甘デジ)", maker: "アムテックス", type: "甘デジ", sales: "4,000台", remarks: "ラッキートリガー" },
+                { date: "11月3日", name: "P銀河英雄伝説（甘デジ）", maker: "ニューギン", type: "甘デジ", sales: "3,000台", remarks: "" },
+                { date: "11月3日", name: "PAナナシーお江戸ver.（甘デジ）", maker: "豊丸", type: "甘デジ", sales: "1,016台", remarks: "7社PB機" },
+                { date: "11月3日", name: "Pリング呪いの７日間３Ｌｉｇｈｔ（甘デジ）", maker: "JFJ", type: "甘デジ", sales: "3,000台", remarks: "" },
+                { date: "11月17日", name: "Pにゃんこ大戦争", maker: "京楽", type: "マックス", sales: "8,000台", remarks: "ラッキートリガー" },
+                { date: "11月17日", name: "eガンダムユニコーン（再販）", maker: "JB", type: "ミドル", sales: "5,000台", remarks: "ラッキートリガー" },
+                { date: "11月17日", name: "P魔法少女まどか☆マギカ(再販)", maker: "京楽", type: "ライトミドル", sales: "3,000台", remarks: "ラッキートリガー" }
+            ],
+            pachislot: [
+                { date: "11月3日", name: "Lバンドリ！", maker: "オリンピアエステート", type: "AT", sales: "8,000台", remarks: "" },
+                { date: "11月3日", name: "L必殺仕置人", maker: "京楽", type: "AT", sales: "5,000台", remarks: "" },
+                { date: "11月3日", name: "Lゴッドイーター（再販）", maker: "山佐", type: "AT", sales: "6,000台", remarks: "" },
+                { date: "11月17日", name: "Lモンスターハンターライズ", maker: "アデリオン", type: "AT", sales: "10,000台", remarks: "" },
+                { date: "11月17日", name: "Lダブルアタック2 with OZS-1000＆RAPHAEL", maker: "オーイズミ", type: "AT", sales: "2,500台", remarks: "" },
+                { date: "11月17日", name: "L超華祭", maker: "パイオニア", type: "AT", sales: "2,000台", remarks: "" }
+            ]
+        },
+        "2024-12": {
+            pachinko: [
+                { date: "12月1日", name: "Pゴジラ対エヴァンゲリオン2", maker: "ビスティ", type: "ミドル", sales: "30,000台", remarks: "" },
+                { date: "12月1日", name: "e大工の源さん～超韋駄天LT399", maker: "三洋", type: "マックス", sales: "10,000台", remarks: "ラッキートリガー" },
+                { date: "12月1日", name: "PF機動戦士ガンダムSEED（甘デジ）", maker: "SANKYO", type: "甘デジ", sales: "8,000台", remarks: "" },
+                { date: "12月1日", name: "PToLoveるダークネスLT", maker: "平和", type: "ライトミドル", sales: "8,000台", remarks: "ラッキートリガー" },
+                { date: "12月1日", name: "P盾の勇者の成り上がり", maker: "銀座", type: "ミドル", sales: "8,000台", remarks: "ラッキートリガー" },
+                { date: "12月1日", name: "P真・一騎当千〜桃園の誓い〜", maker: "ディライト", type: "ライトミドル", sales: "4,000台", remarks: "ラッキートリガー" },
+                { date: "12月1日", name: "Pえとたま2", maker: "メーシー", type: "ライトミドル", sales: "4,000台", remarks: "ラッキートリガー" },
+                { date: "12月1日", name: "PシャカRUSH", maker: "マルホン", type: "ライトミドル", sales: "1,000台", remarks: "ラッキートリガー" },
+                { date: "12月1日", name: "PGO!GO!郷～豪遊の5(甘デジ)", maker: "ニューギン", type: "甘デジ", sales: "-", remarks: "ラッキートリガー" },
+                { date: "12月15日", name: "eソードアート・オンライン アリシゼーション -After War-", maker: "京楽", type: "ライトミドル", sales: "12,000台", remarks: "ラッキートリガー" },
+                { date: "12月15日", name: "P STEINS;GATE0", maker: "ニューギン", type: "ミドル", sales: "10,000台", remarks: "ラッキートリガー" },
+                { date: "12月15日", name: "Pネオモンスターハウス", maker: "竹屋", type: "ライトミドル", sales: "1,400台", remarks: "甘デジも同時" },
+                { date: "12月15日", name: "eA夏色日記GO", maker: "豊丸", type: "甘デジ", sales: "2,000台", remarks: "" },
+                { date: "12月15日", name: "eゴジラ対エヴァンゲリオン2", maker: "ビスティ", type: "マックス", sales: "-", remarks: "ラッキートリガー" }
+            ],
+            pachislot: [
+                { date: "12月1日", name: "L犬夜叉2", maker: "エフ", type: "AT", sales: "18,000台", remarks: "" },
+                { date: "12月1日", name: "L聖戦士ダンバイン", maker: "タイヨーエレック", type: "AT", sales: "15,000台", remarks: "" },
+                { date: "12月1日", name: "Lルパン三世〜大航海者の秘宝", maker: "平和", type: "AT", sales: "12,000台", remarks: "" },
+                { date: "12月1日", name: "Sウルトラミラクルジャグラー", maker: "北電子", type: "ノーマル", sales: "10,000台", remarks: "" },
+                { date: "12月1日", name: "S / 沖ドキ！ゴージャス", maker: "エレコ", type: "AT", sales: "8,000台", remarks: "XA 30Φ GS25Φ" },
+                { date: "12月1日", name: "Lモンキーターン（再販）", maker: "山佐", type: "AT", sales: "7,000台", remarks: "" },
+                { date: "12月1日", name: "L桃太郎電鉄", maker: "KPE", type: "AT", sales: "5,000台", remarks: "" },
+                { date: "12月15日", name: "Lダンベル何キロ持てる？", maker: "SANKYO", type: "AT", sales: "15,000台", remarks: "" },
+                { date: "12月15日", name: "Lとある科学の一方通行", maker: "オレンジ", type: "AT", sales: "10,000台", remarks: "" },
+                { date: "12月15日", name: "Lスーパービンゴネオ", maker: "ベルコ", type: "AT", sales: "8,000台", remarks: "" },
+                { date: "12月15日", name: "Lかぐや様は告らせたい（再販）", maker: "JB", type: "AT", sales: "5,000台", remarks: "" }
+            ]
+        },
+        "2025-01": {
+            pachinko: [
+                { date: "1月5日", name: "e戦姫絶唱シンフォギア", maker: "ジェイビー", type: "マックス", sales: "20,000台", remarks: "ラッキートリガー" },
+                { date: "1月5日", name: "P戦国乙女7", maker: "アムテックス", type: "マックス", sales: "15,000台", remarks: "ラッキートリガー" },
+                { date: "1月5日", name: "P世界最高の暗殺者、異世界貴族に転生する", maker: "JFJ", type: "ミドル", sales: "10,000台", remarks: "ラッキートリガー" },
+                { date: "1月5日", name: "eULTRAMAN‐K1", maker: "オッケー.", type: "ミドル", sales: "8,000台", remarks: "ラッキートリガー" },
+                { date: "1月5日", name: "e押忍！番長", maker: "大都技研", type: "ライトミドル", sales: "6,500台", remarks: "ラッキートリガー" },
+                { date: "1月5日", name: "Pジューシーハニー極嬢", maker: "サンセイR&D", type: "ライトミドル", sales: "5,000台", remarks: "ラッキートリガー" },
+                { date: "1月5日", name: "P清流物語4", maker: "サンスリー", type: "ライトミドル", sales: "5,000台", remarks: "" },
+                { date: "1月5日", name: "P世紀末・天才バカボン(甘デジ)", maker: "ディライト", type: "甘デジ", sales: "1,000台", remarks: "ラッキートリガー" },
+                { date: "1月19日", name: "P花の慶次〜裂（甘デジ）1/129", maker: "ニューギン", type: "甘デジ", sales: "8,000台", remarks: "ラッキートリガー" },
+                { date: "1月19日", name: "P花の慶次〜裂（甘デジ）1/99", maker: "ニューギン", type: "甘デジ", sales: "", remarks: "ラッキートリガー" },
+                { date: "1月19日", name: "Pブラックラグーン4 EXTRA BULLET", maker: "サミー", type: "甘デジ", sales: "3,000台", remarks: "ラッキートリガー" },
+                { date: "1月19日", name: "PハネモノファミリースタジアムMD", maker: "ミズホ", type: "羽根物", sales: "3,000台", remarks: "" },
+                { date: "1月19日", name: "Pゲゲゲの鬼太郎(甘デジ)", maker: "オレンジ", type: "甘デジ", sales: "2,000台", remarks: "ラッキートリガー" }
+            ],
+            pachislot: [
+                { date: "1月5日", name: "Lチバリヨプラス", maker: "オーゼキ", type: "AT", sales: "5,000台", remarks: "" },
+                { date: "1月5日", name: "Sスターハナハナ", maker: "オニオン", type: "ノーマル", sales: "5,000台", remarks: "" },
+                { date: "1月5日", name: "Lサラリーマン金太郎", maker: "エキサイト", type: "AT", sales: "5,000台", remarks: "" },
+                { date: "1月5日", name: "Lモンスターハンターライズ（再販）", maker: "エンターライズ", type: "AT", sales: "-", remarks: "" },
+                { date: "1月19日", name: "Lシン・エヴァンゲリオン", maker: "ビスティ", type: "AT", sales: "12,000台", remarks: "" },
+                { date: "1月19日", name: "L七つの魔剣が支配する", maker: "KPE", type: "AT", sales: "5,000台", remarks: "" },
+                { date: "1月19日", name: "Lにゃんこ大戦争2", maker: "京楽", type: "AT", sales: "3,000台", remarks: "" },
+                { date: "1月19日", name: "L A-SLOT+ ディスクアップ ULTRAREMIX", maker: "サミー", type: "AT", sales: "3,000台", remarks: "" },
+                { date: "1月19日", name: "L島娘", maker: "オリンピア", type: "AT", sales: "3,000台", remarks: "10台以上、300店舗" },
+                { date: "1月19日", name: "Lスターハナハナ", maker: "パイオニア", type: "ノーマル", sales: "-", remarks: "" }
+            ]
+        },
+        "2025-02": {
+            pachinko: [
+                { date: "2月2日", name: "P戦姫絶唱シンフォギア", maker: "SANKYO", type: "ライトミドル", sales: "10,000台", remarks: "ラッキートリガー" },
+                { date: "2月2日", name: "e蒼天の拳", maker: "サミー", type: "マックス", sales: "8,000台", remarks: "ラッキートリガー" },
+                { date: "2月2日", name: "e閃乱カグラ", maker: "ディライト", type: "マックス", sales: "8,000台", remarks: "ラッキートリガー" },
+                { date: "2月2日", name: "Pシン・エヴァンゲリオン129ver", maker: "ビスティ", type: "甘デジ", sales: "8,000台", remarks: "ラッキートリガー" },
+                { date: "2月2日", name: "Pとある魔術の禁書目録2（甘デジ）", maker: "JFJ", type: "甘デジ", sales: "7,000台", remarks: "ラッキートリガー" },
+                { date: "2月2日", name: "P冬のソナタ", maker: "オッケー．", type: "ミドル", sales: "7,000台", remarks: "" },
+                { date: "2月2日", name: "P愛の不時着", maker: "メーシー", type: "-", sales: "6,000台", remarks: "ラッキートリガー" },
+                { date: "2月2日", name: "eルパン三世14", maker: "平和", type: "マックス", sales: "3,000台", remarks: "ラッキートリガー" },
+                { date: "2月2日", name: "P冬のソナタ Sweet.ver（GORAKU)", maker: "京楽", type: "甘デジ", sales: "1,574台", remarks: "" },
+                { date: "2月2日", name: "Pシン・エヴァンゲリオン129ver（GORAKU)", maker: "ビスティ", type: "甘デジ", sales: "1,500台", remarks: "ラッキートリガー" },
+                { date: "2月16日", name: "P緋弾のアリア〜緋緋神降臨199Ver", maker: "藤商事", type: "ライトミドル", sales: "4,000台", remarks: "ラッキートリガー" },
+                { date: "2月16日", name: "Pオバロ-OVER LORD- LT搭載129Ver.", maker: "サンセイR&D", type: "甘デジ", sales: "2,500台", remarks: "ラッキートリガー" },
+                { date: "2月16日", name: "Pクィーンズブレイド4（甘デジ）", maker: "高尾", type: "甘デジ", sales: "1,500台", remarks: "" },
+                { date: "2月16日", name: "P デビルマン THE FINAL（甘デジ）", maker: "ニューギン", type: "甘デジ", sales: "4,000台", remarks: "ラッキートリガー" },
+                { date: "2月16日", name: "Pこの素晴らしい世界に祝福を！ラッキートリガー129緊急クエスト", maker: "豊丸", type: "甘デジ", sales: "-", remarks: "ラッキートリガー" },
+                { date: "2月16日", name: "Pにゃんこ大戦争～多様性のネコ～（再販）", maker: "オッケー.", type: "マックス", sales: "500台", remarks: "ラッキートリガー" }
+            ],
+            pachislot: [
+                { date: "2月2日", name: "L東京喰種", maker: "クロスアルファ", type: "AT", sales: "12,000台", remarks: "" },
+                { date: "2月2日", name: "Lスーパーブラックジャック", maker: "山佐", type: "AT", sales: "10,000台", remarks: "" },
+                { date: "2月2日", name: "Lありふれた職業で世界最強jA", maker: "SANKYO", type: "AT", sales: "10,000台", remarks: "" },
+                { date: "2月2日", name: "L／SHAMANKING／", maker: "エレコ", type: "AT", sales: "7,000台", remarks: "" },
+                { date: "2月2日", name: "Sナイツ(再販)", maker: "山佐", type: "AT", sales: "若干数", remarks: "最安9.8万円" }
+            ]
+        },
+        "2025-03": {
+            pachinko: [
+                { date: "3月2日", name: "eダンまち", maker: "JB", type: "マックス", sales: "15,000台", remarks: "" },
+                { date: "3月2日", name: "PA大海物語ブラック99Ver(甘デジ)", maker: "三洋", type: "甘デジ", sales: "10,000台", remarks: "" },
+                { date: "3月2日", name: "P俺の妹がこんなに可愛いわけがない", maker: "京楽", type: "ライトミドル", sales: "7,000台", remarks: "" },
+                { date: "3月2日", name: "Pリングにかけろ", maker: "ニューギン", type: "-", sales: "5,000台", remarks: "" },
+                { date: "3月2日", name: "Pダンまち", maker: "SANKYO", type: "ミドル", sales: "3,000台", remarks: "" },
+                { date: "3月2日", name: "Pバンドリ！(甘デジ）", maker: "平和", type: "甘デジ", sales: "3,000台", remarks: "" },
+                { date: "3月2日", name: "PFAIRY TAIL(甘デジ)", maker: "藤商事", type: "甘デジ", sales: "3,000台", remarks: "" },
+                { date: "3月2日", name: "Pポチッと一発おだてブタ2(再販)", maker: "アムテックス", type: "羽モノ", sales: "100台", remarks: "" },
+                { date: "3月16日", name: "e真・北斗無双5", maker: "サミー", type: "ミドル", sales: "10,000台", remarks: "デカヘソ" },
+                { date: "3月16日", name: "PA魔王学院の不適合者 魔王再臨99ver.FVX(甘デジ)", maker: "藤商事", type: "甘デジ", sales: "3,000台", remarks: "" },
+                { date: "3月16日", name: "Pうる星やつら(甘デジ)", maker: "ニューギン", type: "甘デジ", sales: "3,000台", remarks: "" },
+                { date: "3月16日", name: "Pうまい棒2", maker: "アムテックス", type: "役物", sales: "3,000台", remarks: "" },
+                { date: "3月16日", name: "PAひぐらしのなく頃に-輪廻転生- 99Ver.(甘デジ)", maker: "ディ・ライト", type: "甘デジ", sales: "2,000台", remarks: "" },
+                { date: "3月16日", name: "Pモモキュンソード速撃3000＋", maker: "ソフィア", type: "ミドル", sales: "2,000台", remarks: "" }
+            ],
+            pachislot: [
+                { date: "3月2日", name: "Lバイオハザード5", maker: "エンターライズ", type: "AT", sales: "12,000台", remarks: "" },
+                { date: "3月2日", name: "Lスマスロカイジ狂宴", maker: "ロデオ", type: "AT", sales: "10,000台", remarks: "" },
+                { date: "3月2日", name: "L仮面ライダー電王", maker: "京楽", type: "AT", sales: "5,000台", remarks: "" },
+                { date: "3月2日", name: "L少女☆歌劇レヴュースタァライト", maker: "オーイズミ", type: "A+AT", sales: "4,000台", remarks: "" },
+                { date: "3月2日", name: "Lシスタークエスト", maker: "カルミナ", type: "AT", sales: "4,000台", remarks: "" },
+                { date: "3月2日", name: "Lモンキーターン（再販）", maker: "山佐", type: "AT", sales: "2,000台", remarks: "" },
+                { date: "3月2日", name: "Lてぃだどんどん", maker: "パオン・ディーピー", type: "AT", sales: "1,000台", remarks: "" },
+                { date: "3月16日", name: "L七つの魔剣が支配する（再販）", maker: "KPE", type: "AT", sales: "400台", remarks: "" },
+                { date: "3月16日", name: "Lディスクアップウルトラリミックス（再販）", maker: "タイヨーエレック", type: "AT", sales: "1,000台", remarks: "" }
+            ]
+        },
+        "2025-04": {
+            pachinko: [
+                { date: "4月6日", name: "Pうたわれるもの", maker: "SANKYO", type: "ライト", sales: "10,000台", remarks: "" },
+                { date: "4月6日", name: "e牙狼", maker: "サンセイR&D", type: "ライト", sales: "8,000台", remarks: "" },
+                { date: "4月6日", name: "eシン・ウルトラマン", maker: "京楽", type: "ライト", sales: "8,000台", remarks: "" },
+                { date: "4月6日", name: "eうたわれるもの", maker: "SANKYO", type: "マックス", sales: "3,000台", remarks: "" },
+                { date: "4月6日", name: "Pアナザーゴッドハーデズ獄炎", maker: "メーシー", type: "ライト", sales: "2,000台", remarks: "" },
+                { date: "4月6日", name: "P少女☆歌劇レヴュースタァライト", maker: "豊丸", type: "ライト", sales: "1,500台", remarks: "" },
+                { date: "4月20日", name: "e東京喰種", maker: "ビスティ", type: "マックス", sales: "20,000台", remarks: "" },
+                { date: "4月20日", name: "P防振り", maker: "藤商事", type: "マックス", sales: "10,000台", remarks: "" },
+                { date: "4月20日", name: "Pゾンビランドサガ", maker: "サミー", type: "ライトミドル", sales: "5,000台", remarks: "" },
+                { date: "4月20日", name: "PA異世界魔王と召喚少女の奴隷魔術敏感99Ver", maker: "ニューギン", type: "甘デジ", sales: "-", remarks: "" },
+                { date: "4月20日", name: "ｅRe：ゼロから始める異世界生活season2（再販）", maker: "大都技研", type: "ミドル", sales: "2,000台", remarks: "再販4/13" }
+            ],
+            pachislot: [
+                { date: "4月6日", name: "Lマギアレコード", maker: "ミズホ", type: "A+AT", sales: "13,000台", remarks: "" },
+                { date: "4月6日", name: "Lゴジラ", maker: "ニューギン", type: "AT", sales: "6,000台", remarks: "" },
+                { date: "4月6日", name: "Lうしおととら２", maker: "アイドル", type: "AT", sales: "4,000台", remarks: "" },
+                { date: "4月6日", name: "Lアメイジングライブ", maker: "パイオニア", type: "AT", sales: "4,000台", remarks: "" },
+                { date: "4月6日", name: "Lバイオハザード5(再販)", maker: "エンターライズ", type: "AT", sales: "2,000台", remarks: "" },
+                { date: "4月20日", name: "L吉宗クラシック", maker: "サボハニ", type: "AT", sales: "15,000台", remarks: "" },
+                { date: "4月20日", name: "L麻雀物語5", maker: "オリンピアエステート", type: "AT", sales: "10,000台", remarks: "" },
+                { date: "4月20日", name: "Lアイドルマスターミリオンライブ", maker: "山佐", type: "特殊", sales: "10,000台", remarks: "" },
+                { date: "4月20日", name: "Lモンスターハンターライズ(再販)", maker: "アデリオン", type: "AT", sales: "1,000台", remarks: "" },
+                { date: "4月20日", name: "Lかぐや様は告らせたい jA（再販）", maker: "ジェイビー", type: "AT", sales: "-", remarks: "" }
+            ]
+        },
+        "2025-05": {
+            pachinko: [
+                { date: "5月6日", name: "P海物語　極JAPAN", maker: "三洋", type: "ミドル", sales: "15,000台", remarks: "" },
+                { date: "5月6日", name: "e仮面ライダーBLACK-KRJ2", maker: "京楽", type: "ミドル", sales: "8,000台", remarks: "" },
+                { date: "5月6日", name: "Pデジハネ北斗の拳慈母 SSPC", maker: "サミー", type: "甘デジ", sales: "5,000台", remarks: "" },
+                { date: "5月6日", name: "P乗物娘2 LM3", maker: "ニューギン", type: "ライトミドル", sales: "5,000台", remarks: "" },
+                { date: "5月6日", name: "Pフィーバー機動戦士ガンダムユニコーン2 Y", maker: "SANKYO", type: "甘デジ", sales: "5,000台", remarks: "" },
+                { date: "5月6日", name: "P世界で一番熱くなりたい", maker: "サンセイR&D", type: "ライトミドル", sales: "5,000台", remarks: "" },
+                { date: "5月6日", name: "P ToLOVEるダークネス 100ver", maker: "平和", type: "甘デジ", sales: "3,000台", remarks: "" },
+                { date: "5月6日", name: "P織田信奈の野望全国版 V1D", maker: "高尾", type: "ライトミドル", sales: "3,000台", remarks: "" },
+                { date: "5月6日", name: "P宇宙戦艦ヤマト2202", maker: "ビスティ", type: "ライトミドル", sales: "3,000台", remarks: "" },
+                { date: "5月6日", name: "P攻殻機動隊SAC_2045", maker: "ディ・ライト", type: "ライトミドル", sales: "3,000台", remarks: "" },
+                { date: "5月6日", name: "P江頭2:50inナナシー 奇跡の99%", maker: "豊丸", type: "甘デジ", sales: "1,000台", remarks: "" },
+                { date: "5月6日", name: "eフィーバーからくりサーカス2 R（再販）", maker: "SANKYO", type: "マックス", sales: "-", remarks: "" },
+                { date: "5月6日", name: "e ／押忍番長漢の頂／ L09（再販）", maker: "大都技研", type: "ライトミドル", sales: "-", remarks: "" },
+                { date: "5月18日", name: "Pファンキードクター D", maker: "マルホン", type: "甘デジ", sales: "700台", remarks: "" },
+                { date: "5月18日", name: "Pファンキードクター DL", maker: "マルホン", type: "甘デジ", sales: "700台", remarks: "" }
+            ],
+            pachislot: [
+                { date: "5月6日", name: "LガンダムSEED", maker: "ビスティ", type: "AT", sales: "15,000台", remarks: "" },
+                { date: "5月6日", name: "L／緑ドン5／ FY", maker: "ユニバーサルブロス", type: "AT", sales: "10,000台", remarks: "" },
+                { date: "5月6日", name: "Lようこそ実力至上主義の教室へ DE", maker: "DAXEL", type: "AT", sales: "5,000台", remarks: "" },
+                { date: "5月6日", name: "L少女歌劇レヴュースタァライト（再販）", maker: "オーイズミ", type: "A+AT", sales: "700台", remarks: "" },
+                { date: "5月18日", name: "LToLOVEるダークネストランスバージョン", maker: "オリンピアエステート", type: "AT", sales: "5,000台", remarks: "" },
+                { date: "5月18日", name: "Lハナガサ", maker: "ネット", type: "AT", sales: "1,000台", remarks: "" }
+            ]
+        },
+        "2025-06": {
+            pachinko: [
+                { date: "6月1日", name: "P海物語3R3（甘デジ）", maker: "三洋", type: "甘デジ", sales: "20,000台", remarks: "" },
+                { date: "6月1日", name: "eフィーバー彼女、お借りします", maker: "SANKYO", type: "マックス", sales: "15,000台", remarks: "デカヘソ" },
+                { date: "6月1日", name: "e 範馬刃牙", maker: "平和", type: "マックス", sales: "10,000台", remarks: "" },
+                { date: "6月1日", name: "P冴えない彼女の育て方", maker: "大都技研", type: "ライトミドル", sales: "10,000台", remarks: "" },
+                { date: "6月1日", name: "Pデジハネモンスターハンター", maker: "銀座", type: "甘デジ", sales: "5,000台", remarks: "" },
+                { date: "6月1日", name: "P戦国無双", maker: "ニューギン", type: "ミドル", sales: "4,000台", remarks: "デカヘソ" },
+                { date: "6月1日", name: "P緋弾のアリア～緋緋神降臨～88Ver", maker: "藤商事", type: "甘デジ", sales: "3,000台", remarks: "" },
+                { date: "6月1日", name: "Pフィーバーマクロスフロンティア5 YS", maker: "SANKYO", type: "甘デジ", sales: "3,000台", remarks: "" },
+                { date: "6月1日", name: "e新・必殺仕置人～超斬撃99ver.", maker: "京楽", type: "甘デジ", sales: "3,000台", remarks: "" },
+                { date: "6月1日", name: "Pジューシーハニー極上77LT", maker: "サンセイR&D", type: "甘デジ", sales: "3,000台", remarks: "" },
+                { date: "6月1日", name: "P DD北斗の拳3 甘デジ99Ver.", maker: "高尾", type: "甘デジ", sales: "1,000台", remarks: "" },
+                { date: "6月1日", name: "Pポチッと一発おだてブタ2 V1（再販）", maker: "アムテックス", type: "羽根物", sales: "100台", remarks: "" },
+                { date: "6月15日", name: "e東京喰種（再販）", maker: "JB", type: "マックス", sales: "1,000台", remarks: "" }
+            ],
+            pachislot: [
+                { date: "6月1日", name: "Lいざ！番長", maker: "サボハニ", type: "AT", sales: "10,000台", remarks: "" },
+                { date: "6月1日", name: "Lデビルメイクライ", maker: "アデリオン", type: "AT", sales: "10,000台", remarks: "" },
+                { date: "6月1日", name: "Lギルティクラウン", maker: "アクロス", type: "A+AT", sales: "8,000台", remarks: "" },
+                { date: "6月1日", name: "LBプレミアムうまい棒", maker: "オリンピアエステート", type: "BT", sales: "5,000台", remarks: "" },
+                { date: "6月1日", name: "LBニューパルサー", maker: "山佐", type: "BT", sales: "5,000台", remarks: "" },
+                { date: "6月1日", name: "LBパチスロ1000ちゃんA", maker: "オーイズミ", type: "BT", sales: "4,000台", remarks: "" },
+                { date: "6月1日", name: "LパチスロULTRAMAN KE", maker: "京楽", type: "AT", sales: "3,500台", remarks: "" },
+                { date: "6月1日", name: "LB翔べ！ハーレムエース", maker: "ネット", type: "BT", sales: "3,000台", remarks: "" },
+                { date: "6月1日", name: "LBジャックポット", maker: "ヤーマ", type: "BT", sales: "-", remarks: "" },
+                { date: "6月15日", name: "L絶対衝激", maker: "スパイキー", type: "A+AT", sales: "2,000台", remarks: "" },
+                { date: "6月15日", name: "LモンスターハンターライズＸＡ（再販）", maker: "エンターライズ", type: "AT", sales: "-", remarks: "" }
+            ]
+        },
+        "2025-07": {
+            pachinko: [
+                { date: "7月6日", name: "e東京リベンジャーズ", maker: "銀座", type: "ミドル", sales: "20,000台", remarks: "" },
+                { date: "7月6日", name: "e炎炎ノ消防隊2", maker: "SANKYO", type: "マックス", sales: "20,000台", remarks: "" },
+                { date: "7月6日", name: "eとある魔術の禁書目録 一方通行 BIG RKA", maker: "JFJ", type: "マックス", sales: "20,000台", remarks: "デカヘソ" },
+                { date: "7月6日", name: "e犬夜叉", maker: "ディ・ライト", type: "マックス", sales: "15,000台", remarks: "" },
+                { date: "7月6日", name: "e冒険島", maker: "三洋", type: "ライトミドル", sales: "5,000台", remarks: "" },
+                { date: "7月6日", name: "Pドラムだ！金ドンSB", maker: "ミズホ", type: "甘デジ", sales: "2,500台", remarks: "" },
+                { date: "7月6日", name: "PA CYBORG 009 N2-K", maker: "ニューギン", type: "甘デジ", sales: "2,000台", remarks: "" },
+                { date: "7月6日", name: "Pガンダムユニコーン（甘デジ）", maker: "SANKYO", type: "甘デジ", sales: "1,000台", remarks: "3個賞球" },
+                { date: "7月21日", name: "eマギアレコード", maker: "京楽", type: "マックス", sales: "10,000台", remarks: "" },
+                { date: "7月21日", name: "e花の慶次〜傾奇一転Ｈ６", maker: "ニューギン", type: "マックス", sales: "-", remarks: "デカヘソ" },
+                { date: "7月21日", name: "PAコマコマ倶楽部with坂本冬美VS1", maker: "豊丸", type: "甘デじ", sales: "750台", remarks: "" },
+                { date: "7月28日", name: "Pワイの佐野ラーメン", maker: "A-gon", type: "-", sales: "-", remarks: "" }
+            ],
+            pachislot: [
+                { date: "7月6日", name: "LB エヴァンゲリオン約束の扉", maker: "ビスティ", type: "BT", sales: "10,000台", remarks: "" },
+                { date: "7月6日", name: "LB AREX BRIGHT BA", maker: "ユニバーサルブロス", type: "BT", sales: "5,000台", remarks: "" },
+                { date: "7月6日", name: "Lわたしの幸せな結婚 PN", maker: "KPE", type: "AT", sales: "5,000台", remarks: "" },
+                { date: "7月6日", name: "Sハイビリターン－30", maker: "パイオニア", type: "AT", sales: "3,000台", remarks: "" },
+                { date: "7月6日", name: "LBトリプルクラウン", maker: "岡崎産業", type: "BT", sales: "1,000台", remarks: "" },
+                { date: "7月6日", name: "L ToLOVEるダークネス S8（再販）", maker: "オリンピアエステート", type: "AT", sales: "若干数", remarks: "" },
+                { date: "7月21日", name: "L／スマスロマギアレコード（再販）", maker: "ミズホ", type: "AT", sales: "500台", remarks: "" },
+                { date: "7月21日", name: "Lレヴュースタァライト(再販)", maker: "オーイズミ", type: "A＋AT", sales: "100台", remarks: "" },
+                { date: "7月28日", name: "LBマタドールⅢ ", maker: "北電子", type: "BT", sales: "3,000台", remarks: "" }
+            ]
+        },
+        "2025-08": {
+            pachinko: [
+                { date: "8月3日", name: "e牙狼12XX", maker: "サンセイR&D", type: "マックス", sales: "20,000台", remarks: "" },
+                { date: "8月3日", name: "e真・一騎当千～軍神覚醒～", maker: "ディ・ライト", type: "マックス", sales: "10,000台", remarks: "デカヘソミドルあり" },
+                { date: "8月3日", name: "e黄門ちゃま", maker: "平和", type: "マックス", sales: "10,000台", remarks: "デカヘソ" },
+                { date: "8月3日", name: "eシャーマンキング", maker: "メーシー", type: "マックス", sales: "8,000台", remarks: "デカヘソミドルあり" },
+                { date: "8月3日", name: "Pクィーンズブレイド奈落V1A", maker: "高尾", type: "ミドル", sales: "3,000台", remarks: "1個、3個賞球" },
+                { date: "8月3日", name: "P戦姫絶唱シンフォギア4（甘デジ）", maker: "SANKYO", type: "甘デジ", sales: "1,000台", remarks: "" },
+                { date: "8月3日", name: "Pハネモノファミリースタジアム MD（再販）", maker: "ミズホ", type: "羽モノ", sales: "-", remarks: "" },
+                { date: "8月17日", name: "e女神のカフェテラス FLX", maker: "藤商事", type: "マックス", sales: "10,000台", remarks: "デカヘソ" },
+                { date: "8月17日", name: "eゴジラ7", maker: "ニューギン", type: "ライトミドル", sales: "6,000台", remarks: "" },
+                { date: "8月17日", name: "P豊丸のとあるパチンコにしみけん参戦", maker: "豊丸", type: "甘デジ", sales: "2,000台", remarks: "" },
+                { date: "8月24日", name: "e東京喰種（再販）", maker: "JB", type: "マックス", sales: "3,000台", remarks: "" }
+            ],
+            pachislot: [
+                { date: "8月3日", name: "LダーリンインザフランキスSA", maker: "スパイキー", type: "AT", sales: "10,000台", remarks: "" },
+                { date: "8月3日", name: "Lアズールレーン", maker: "京楽", type: "AT", sales: "6,000台", remarks: "" },
+                { date: "8月3日", name: "L転生したら剣でした GT", maker: "グレードワン", type: "AT", sales: "5,000台", remarks: "" },
+                { date: "8月3日", name: "L咲２-Saki-頂上決戦", maker: "三洋", type: "AT", sales: "5,000台", remarks: "" },
+                { date: "8月3日", name: "L／ヨシムネ（再販）", maker: "サボハニ", type: "AT", sales: "1,500台", remarks: "" },
+                { date: "8月3日", name: "Sパチスロなめ猫QQ", maker: "ボーダー", type: "AT", sales: "500台", remarks: "" },
+                { date: "8月3日", name: "Lモンキーターン5（再販）", maker: "山佐", type: "AT", sales: "若干数", remarks: "" },
+                { date: "8月3日", name: "Lスーパーブラックジャック（再販）", maker: "山佐", type: "AT", sales: "若干数", remarks: "" },
+                { date: "8月17日", name: "L東京喰種（再販）", maker: "スパイキー", type: "AT", sales: "2,000台", remarks: "" },
+                { date: "8月31日", name: "Sネオアイムジャグラー EX-KK", maker: "北電子", type: "ノーマル", sales: "70,000台", remarks: "" }
+            ]
+        },
+        "2025-09": {
+            pachinko: [
+                { date: "9月7日", name: "eフィーバーブルーロックＭＺ", maker: "JB", type: "マックス", sales: "25,000台", remarks: "" },
+                { date: "9月7日", name: "eパリピ孔明 MA", maker: "サンセイR&D", type: "ミドル", sales: "8,000台", remarks: "" },
+                { date: "9月7日", name: "P戦国乙女7　299ver.デカヘソLT", maker: "平和", type: "ミドル", sales: "7,000台", remarks: "デカヘソ" },
+                { date: "9月7日", name: "Pシン・エヴァンゲリオンY", maker: "ビスティ", type: "甘デジ", sales: "5,000台", remarks: "" },
+                { date: "9月7日", name: "Pアズールレーン79Ver", maker: "京楽", type: "甘デジ", sales: "4,000台", remarks: "" },
+                { date: "9月7日", name: "P頭文字D 2nd 甘デジVer", maker: "銀座", type: "甘デジ", sales: "4,000台", remarks: "" },
+                { date: "9月7日", name: "P FAIRY TAIL 超一夜Ver.FQY", maker: "藤商事", type: "ミドル", sales: "3,000台", remarks: "デカヘソ" },
+                { date: "9月7日", name: "PデビルマンＬＭ３", maker: "ニューギン", type: "甘デジ", sales: "1,000台", remarks: "" },
+                { date: "9月7日", name: "P真・座頭市物語Ｎ２－Ｋ", maker: "ニューギン", type: "甘デジ", sales: "1,000台", remarks: "" },
+                { date: "9月7日", name: "e東京リベンジャーズ(再販)", maker: "サミー", type: "ミドル", sales: "3,000台", remarks: "" },
+                { date: "9月21日", name: "Pルパン三世14  甘デジVer.", maker: "平和", type: "甘デジ", sales: "3,000台", remarks: "" },
+                { date: "9月21日", name: "PシャカRUSH ZD", maker: "マルホン", type: "甘デジ", sales: "-", remarks: "" }
+            ],
+            pachislot: [
+                { date: "9月7日", name: "L東京リベンジャーズ", maker: "サミー", type: "AT", sales: "20,000台", remarks: "" },
+                { date: "9月7日", name: "LBクレアの秘宝伝～はじまりの太陽の石～ボーなしトリガーver.", maker: "大都技研", type: "BT", sales: "5,000台", remarks: "" },
+                { date: "9月7日", name: "Lドルアーガの塔ZA", maker: "ミズホ", type: "A+AT", sales: "3,000台", remarks: "" },
+                { date: "9月7日", name: "S/ドルアーガの塔/ZU", maker: "ミズホ", type: "A+AT", sales: "", remarks: "" },
+                { date: "9月21日", name: "LBマジカルハロウィンGN", maker: "グレードワン", type: "BT", sales: "5,000台", remarks: "" }
+            ]
+        },
+         "2025-10": {
+            pachinko: [
+                { date: "10月5日", name: "Pスーパー海物語IN沖縄6", maker: "三洋", type: "ミドル", sales: "30,000台", remarks: "" },
+                { date: "10月5日", name: "eとある科学の超電磁砲 PHASE NEXT", maker: "藤商事", type: "ライトミドル", sales: "10,000台", remarks: "" },
+                { date: "10月5日", name: "eベルセルク無双２", maker: "ニューギン", type: "マックス", sales: "8,000台", remarks: "" },
+                { date: "10月5日", name: "eガールズアンドパンツァー3", maker: "平和", type: "ライトミドル", sales: "7,000台", remarks: "" },
+                { date: "10月5日", name: "PAフィーバーダンまち2", maker: "SANKYO", type: "甘デジ", sales: "5,000台", remarks: "" },
+                { date: "10月5日", name: "PAぱちんこ冬のソナタ My Memory Sweet Version", maker: "京楽", type: "甘デジ", sales: "4,200台", remarks: "" },
+                { date: "10月5日", name: "PA義風堂々3", maker: "ニューギン", type: "甘デジ", sales: "1,500台", remarks: "" },
+                { date: "10月5日", name: "P STEINS;GATE0", maker: "ニューギン", type: "甘デジ", sales: "1,000台", remarks: "デカヘソ" },
+                { date: "10月19日", name: "e聖戦士ダンバイン3GREA", maker: "サミー", type: "ライトミドル", sales: "7,000台", remarks: "" },
+                { date: "10月19日", name: "PLTゴッドイーター199Ver", maker: "サンセイR&D", type: "ライトミドル", sales: "3,000台", remarks: "" },
+                { date: "10月19日", name: "Pはねものファインプレー", maker: "マルホン", type: "羽根物", sales: "2,000台", remarks: "" }
+            ],
+            pachislot: [
+                { date: "10月5日", name: "L新鬼武者3 SA", maker: "レオスター", type: "AT", sales: "15,000台", remarks: "" },
+                { date: "10月5日", name: "L主役は銭形5", maker: "オリンピア", type: "AT", sales: "10,000台", remarks: "" },
+                { date: "10月5日", name: "L/バベル/BA", maker: "ユニバーサルブロス", type: "AT", sales: "3,000台", remarks: "" },
+                { date: "10月19日", name: "LBシェイク～ボーナストリガー", maker: "大都技研", type: "BT", sales: "4,000台", remarks: "" },
+                { date: "10月19日", name: "L荒野のコトブキ飛行隊ＳＳ", maker: "スパイキー", type: "AT", sales: "6,000台", remarks: "" }
+            ]
+        },
+        "2025-11": {
+            pachinko: [
+                { date: "11月2日", name: "e花の慶次～黄金の一撃", maker: "ニューギン", type: "マックス", sales: "17,000台", remarks: "" },
+                { date: "11月2日", name: "eFもののがたり", maker: "SANKYO", type: "ライトミドル", sales: "15,000台", remarks: "" },
+                { date: "11月2日", name: "P/Re:ゼロ鬼がかりL07", maker: "大都技研", type: "ライトミドル", sales: "12,000台", remarks: "" },
+                { date: "11月2日", name: "P/Re:ゼロ鬼がかりA03", maker: "大都技研", type: "甘デジ", sales: "", remarks: "" },
+                { date: "11月2日", name: "eルパン三世vsキャッツアイ", maker: "平和", type: "ミドル", sales: "10,000台", remarks: "" },
+                { date: "11月2日", name: "eノーゲーム・ノーライフ", maker: "高尾", type: "ミドル・ライト", sales: "8,000台", remarks: "2スペック販売" },
+                { date: "11月2日", name: "eうしおととら～月と太陽～FM-JF", maker: "ディ・ライト", type: "-", sales: "-", remarks: "" },
+                { date: "11月2日", name: "e源外伝-エピソードオブ大龍", maker: "三洋", type: "-", sales: "5,000台", remarks: "" },
+                { date: "11月2日", name: "e仮面ライダー電王－デカヘソ239", maker: "京楽", type: "ライトミドル", sales: "4,000台", remarks: "デカヘソ" },
+                { date: "11月2日", name: "P転生したらスライムだった件 Light ver.", maker: "サンセイR&D", type: "ライトミドル", sales: "-", remarks: "" },
+                { date: "11月2日", name: "Pいくさの子戦極最強ドデカ199Ver", maker: "サミー", type: "ライトミドル", sales: "5,000台", remarks: "デカヘソ" },
+                { date: "11月16日", name: "PAGoGo富士山T", maker: "A-gon", type: "羽根物", sales: "-", remarks: "納期不明" }
+            ],
+            pachislot: [
+                { date: "11月2日", name: "L革命機ヴァルヴレイヴ2", maker: "SANKYO", type: "AT", sales: "25,000台", remarks: "" },
+                { date: "11月2日", name: "L絶対衝激フォースFH", maker: "ディ・ライト", type: "AT", sales: "5,000台", remarks: "" },
+                { date: "11月2日", name: "LプリズムナナCC", maker: "カルミナ", type: "AT", sales: "4,000台", remarks: "" },
+                { date: "11月16日", name: "LBネオプラネット", maker: "セブンリーグ", type: "AT", sales: "6,000台", remarks: "" }
+            ]
+        },
+        "2025-12": {
+            pachinko: [
+                { date: "12月7日", name: "PAフィーバーからくりサーカス2YA", maker: "SANKYO", type: "-", sales: "-", remarks: "" }
+            ],
+            pachislot: []
+        }
+    };
+
+    let currentData = {};
+    let visibleMonths = [];
+
+    // DOM Elements
+    const mainContainer = document.getElementById('main-container');
+    const formModal = document.getElementById('formModal');
+    const modalTitle = document.getElementById('modalTitle');
+    const form = document.getElementById('dataForm');
+    const cancelBtn = document.getElementById('cancelBtn');
+    const resetDataBtn = document.getElementById('resetDataBtn');
+    const editModeBtn = document.getElementById('editModeBtn');
+    const addMonthBtn = document.getElementById('addMonthBtn');
+    const confirmModal = document.getElementById('confirmModal');
+
+    // --- Helper Functions ---
+    function formatSales(salesValue) {
+        if (!salesValue || typeof salesValue !== 'string') {
+            return salesValue || '';
+        }
+        // 数字のみを抽出
+        const numStr = salesValue.replace(/[^0-9]/g, '');
+        if (numStr === '') {
+            return salesValue; // "若干数" や "-" などの文字列をそのまま返す
+        }
+        const number = parseInt(numStr, 10);
+        if (!isNaN(number)) {
+            return number.toLocaleString() + '台';
+        }
+        return salesValue; // パースに失敗した場合も元の値を返す
+    }
+
+    // --- Custom Confirm Modal Function ---
+    function showConfirm(message, title = '確認') {
+        return new Promise((resolve) => {
+            document.getElementById('confirmTitle').textContent = title;
+            document.getElementById('confirmMessage').textContent = message;
+            confirmModal.style.display = 'block';
+
+            const okBtn = document.getElementById('confirmOkBtn');
+            const cancelBtn = document.getElementById('confirmCancelBtn');
+
+            const newOkBtn = okBtn.cloneNode(true);
+            okBtn.parentNode.replaceChild(newOkBtn, okBtn);
+            
+            const newCancelBtn = cancelBtn.cloneNode(true);
+            cancelBtn.parentNode.replaceChild(newCancelBtn, cancelBtn);
+
+            newOkBtn.onclick = () => {
+                confirmModal.style.display = 'none';
+                resolve(true);
+            };
+            newCancelBtn.onclick = () => {
+                confirmModal.style.display = 'none';
+                resolve(false);
+            };
+        });
+    }
+
+    // --- Data Management Functions ---
+    function saveData() {
+        localStorage.setItem('shinKishuData', JSON.stringify(currentData));
+        localStorage.setItem('visibleMonths', JSON.stringify(visibleMonths));
+    }
+
+    function loadData() {
+        const savedData = localStorage.getItem('shinKishuData');
+        try {
+            if (savedData) {
+                currentData = JSON.parse(savedData);
+            } else {
+                currentData = JSON.parse(JSON.stringify(initialData));
+            }
+        } catch (e) {
+            console.error("Error parsing saved data:", e);
+            currentData = JSON.parse(JSON.stringify(initialData));
+        }
+
+        const savedVisibleMonths = localStorage.getItem('visibleMonths');
+        if (savedVisibleMonths) {
+            visibleMonths = JSON.parse(savedVisibleMonths);
+            visibleMonths = visibleMonths.filter(month => currentData.hasOwnProperty(month));
+        } else {
+            visibleMonths = Object.keys(currentData);
+        }
+    }
+
+    // --- Rendering Functions ---
+    function render() {
+        mainContainer.innerHTML = '';
+        
+        const pachiHeader = document.createElement('div');
+        pachiHeader.className = 'column-header';
+        pachiHeader.textContent = 'パチンコ';
+        mainContainer.appendChild(pachiHeader);
+
+        const slotHeader = document.createElement('div');
+        slotHeader.className = 'column-header';
+        slotHeader.textContent = 'パチスロ';
+        mainContainer.appendChild(slotHeader);
+
+        const sortedMonths = [...visibleMonths].sort().reverse();
+
+        for (const month of sortedMonths) {
+            if (currentData[month]) {
+                 const pachiSection = createMonthSection(currentData[month].pachinko, 'pachinko', month);
+                 mainContainer.appendChild(pachiSection);
+
+                 const slotSection = createMonthSection(currentData[month].pachislot, 'pachislot', month);
+                 mainContainer.appendChild(slotSection);
+            }
+        }
+    }
+
+    function createMonthSection(data, type, month) {
+        const section = document.createElement('div');
+        section.className = 'month-section-wrapper';
+
+        const [year, monthNum] = month.split('-');
+        const monthTitleText = `${year}年${parseInt(monthNum, 10)}月`;
+
+        section.innerHTML = `
+            <div class="month-header">
+                <h3 class="month-title">${monthTitleText}</h3>
+                <button class="delete-month-btn edit-mode-item" onclick="hideMonth('${month}')">&times;</button>
+            </div>`;
+        const table = createTable(data, type, month);
+        section.appendChild(table);
+        const addBtn = createAddButton(type, month);
+        section.appendChild(addBtn);
+        return section;
+    }
+
+    function createTable(data, type, month) {
+        const wrapper = document.createElement('div');
+        wrapper.className = 'table-wrapper';
+        const table = document.createElement('table');
+        const thead = document.createElement('thead');
+        const tbody = document.createElement('tbody');
+        
+        const headerRow = document.createElement('tr');
+        const headers = { date: "導入日", name: "機種名", maker: "メーカー", type: "タイプ", sales: "販売台数", remarks: "備考", actions: "操作" };
+        
+        const headerKeys = Object.keys(headers);
+        headerRow.innerHTML = headerKeys.map(key => `<th class="col-${key}">${headers[key]}</th>`).join('');
+        thead.appendChild(headerRow);
+        
+        const sortedData = [...(data || [])].sort((a, b) => {
+            const parseDay = (dateStr) => {
+                if (!dateStr) return 99;
+                const match = dateStr.match(/(\d+)月(\d+)日/);
+                return match ? parseInt(match[2], 10) : 99;
+            };
+            return parseDay(a.date) - parseDay(b.date);
+        });
+
+        sortedData.forEach((item) => {
+            const originalIndex = data.indexOf(item);
+            const row = document.createElement('tr');
+            let cells = '';
+            for(const key of headerKeys) {
+                 if (key === 'actions') {
+                    cells += `<td>
+                                <div class="actions edit-mode-item">
+                                    <button class="action-btn edit-btn" onclick="openModal('${type}', '${month}', ${originalIndex})">編集</button>
+                                    <button class="action-btn delete-btn" onclick="deleteItem('${type}', '${month}', ${originalIndex})">削除</button>
+                                </div>
+                            </td>`;
+                } else if (key === 'sales') {
+                    cells += `<td class="text-right">${formatSales(item[key])}</td>`;
+                }
+                else {
+                    cells += `<td>${item[key] || ''}</td>`;
+                }
+            }
+            row.innerHTML = cells;
+            tbody.appendChild(row);
+        });
+
+        table.appendChild(thead);
+        table.appendChild(tbody);
+        wrapper.appendChild(table);
+        return wrapper;
+    }
+    
+    function createAddButton(type, month) {
+        const button = document.createElement('button');
+        button.className = 'add-btn edit-mode-item';
+        button.textContent = '＋ 機種を追加';
+        button.onclick = () => openModal(type, month);
+        return button;
+    }
+
+    // --- Modal and Form Functions ---
+    window.openModal = function(type, month, index = null) {
+        form.reset();
+        document.getElementById('editType').value = type;
+        document.getElementById('editMonth').value = month;
+        document.getElementById('editIndex').value = index;
+        document.getElementById('spec-group').style.display = 'none';
+
+        if (index !== null) {
+            modalTitle.textContent = '機種情報の編集';
+            const item = currentData[month][type][index];
+            if (item.date) {
+                const dateMatch = item.date.match(/(\d+)月(\d+)日/);
+                if (dateMatch) {
+                    const [year, monthStr] = month.split('-');
+                    const dayStr = String(dateMatch[2]).padStart(2, '0');
+                    document.getElementById('date').value = `${year}-${monthStr}-${dayStr}`;
+                } else { document.getElementById('date').value = ''; }
+            } else { document.getElementById('date').value = ''; }
+            document.getElementById('name').value = item.name || '';
+            document.getElementById('maker').value = item.maker || '';
+            document.getElementById('type').value = item.type || '';
+            document.getElementById('sales').value = item.sales || '';
+            document.getElementById('remarks').value = item.remarks || '';
+        } else {
+            modalTitle.textContent = '新規機種の追加';
+        }
+        formModal.style.display = 'block';
+    }
+
+    function closeModal() {
+        formModal.style.display = 'none';
+    }
+
+    window.deleteItem = async function(type, month, index) {
+        const confirmed = await showConfirm('この機種情報を削除してもよろしいですか？');
+        if (confirmed) {
+            currentData[month][type].splice(index, 1);
+            saveData();
+            render();
+        }
+    }
+    
+    window.hideMonth = async function(month) {
+        const [year, monthNum] = month.split('-');
+        const monthTitleText = `${year}年${parseInt(monthNum, 10)}月`;
+        const confirmed = await showConfirm(`「${monthTitleText}」のセクションを非表示にしますか？\n（中のデータは削除されません）`);
+        if (confirmed) {
+            visibleMonths = visibleMonths.filter(m => m !== month);
+            saveData();
+            render();
+        }
+    }
+    
+    form.addEventListener('submit', (e) => {
+        e.preventDefault();
+        const type = document.getElementById('editType').value;
+        const month = document.getElementById('editMonth').value;
+        const index = document.getElementById('editIndex').value;
+
+        const salesInput = document.getElementById('sales').value;
+
+        const newItem = {
+            date: '',
+            name: document.getElementById('name').value,
+            maker: document.getElementById('maker').value,
+            type: document.getElementById('type').value,
+            sales: salesInput,
+            remarks: document.getElementById('remarks').value,
+        };
+        
+        const dateValue = document.getElementById('date').value;
+        if (dateValue) {
+            const dateObj = new Date(dateValue + 'T00:00:00');
+            newItem.date = `${dateObj.getMonth() + 1}月${dateObj.getDate()}日`;
+        }
+
+        if (index !== '' && index !== null && index !== 'null') {
+            currentData[month][type][parseInt(index, 10)] = newItem;
+        } else {
+            if(!currentData[month]) {
+                currentData[month] = { pachinko: [], pachislot: [] };
+            }
+            currentData[month][type].push(newItem);
+        }
+        
+        saveData();
+        render();
+        closeModal();
+    });
+
+    // --- Event Listeners ---
+    cancelBtn.addEventListener('click', closeModal);
+    
+    window.onclick = function(event) {
+        if (event.target == formModal) {
+            closeModal();
+        }
+    }
+    
+    resetDataBtn.addEventListener('click', async () => {
+        const confirmed = await showConfirm('本当にすべてのデータを初期状態に戻しますか？\n現在保存されている編集内容はすべて失われます。');
+        if (confirmed) {
+            localStorage.removeItem('shinKishuData');
+            localStorage.removeItem('visibleMonths');
+            loadData();
+            render();
+        }
+    });
+
+    addMonthBtn.addEventListener('click', () => {
+        const newMonth = prompt('追加したい月を「YYYY-MM」形式で入力してください。\n例: 2025-08');
+        if (newMonth && /^\d{4}-\d{2}$/.test(newMonth)) {
+            if (visibleMonths.includes(newMonth)) {
+                return;
+            }
+            if (!currentData.hasOwnProperty(newMonth)) {
+                currentData[newMonth] = { pachinko: [], pachislot: [] };
+            }
+            visibleMonths.push(newMonth);
+            saveData();
+            render();
+        } else if (newMonth !== null) {
+            showConfirm('形式が正しくありません。「YYYY-MM」で入力してください。', '入力エラー');
+        }
+    });
+
+    editModeBtn.addEventListener('click', () => {
+        if (document.body.classList.contains('edit-mode-active')) {
+            document.body.classList.remove('edit-mode-active');
+            editModeBtn.textContent = '編集モード';
+        } else {
+            const password = prompt('パスワードを入力してください:');
+            if (password === null) return;
+
+            // 平文のパスワードで直接比較
+            const correctPassword = 'kapikapi2025';
+
+            if (password === correctPassword) {
+                document.body.classList.add('edit-mode-active');
+                editModeBtn.textContent = '編集を終了';
+            } else {
+                // パスワードが間違っていた場合、何もしない（アラートは出さない）
+            }
+        }
+    });
+
+    // Initial Load
+    document.addEventListener('DOMContentLoaded', () => {
+        loadData();
+        render();
+    });
+    </script>
+</body>
+</html>
+
